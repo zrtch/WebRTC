@@ -1,12 +1,4 @@
-## WebRTC 基础概念
-
-WebRTC (Web Real-Time Communication) 是一项开源技术，允许网页浏览器之间进行实时音视频通信，无需安装插件或第三方软件。主要特点：
-
-- 点对点通信：减少服务器负担，降低延迟
-- 开放标准：由 W3C 和 IETF 标准化
-- 跨平台：支持多种浏览器和设备
-
-## AdapterJS 的作用
+## AdapterJS
 
 AdapterJS 是一个兼容层，解决不同浏览器对 WebRTC API 实现不一致的问题：
 

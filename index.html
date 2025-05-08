@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>简易视频会议系统</title>
+    <style>
+      body {
+        font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+        margin: 0;
+        padding: 20px;
+        background-color: #f0f2f5;
+      }
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+      .header {
+        text-align: center;
+        margin-bottom: 20px;
+      }
+      .meeting-info {
+        background-color: #fff;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+      .video-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 15px;
+        margin-bottom: 20px;
+      }
+      .video-container {
+        position: relative;
+        background-color: #000;
+        border-radius: 8px;
+        overflow: hidden;
+        aspect-ratio: 4/3;
+      }
+      .video-container video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .participant-name {
+        position: absolute;
+        bottom: 10px;
+        left: 10px;
+        background-color: rgba(0, 0, 0, 0.5);
+        color: white;
+        padding: 5px 10px;
+        border-radius: 4px;
+        font-size: 14px;
+      }
+      .controls {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+        margin-bottom: 20px;
+      }
+      .control-btn {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        cursor: pointer;
+      }
+      .btn-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background-color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 5px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+      .btn-icon.mute {
+        background-color: #f56c6c;
+        color: white;
+      }
+      .btn-icon.video-off {
+        background-color: #f56c6c;
+        color: white;
+      }
+      .btn-icon.leave {
+        background-color: #f56c6c;
+        color: white;
+      }
+      .btn-text {
+        font-size: 12px;
+      }
+      .chat-panel {
+        background-color: #fff;
+        border-radius: 8px;
+        padding: 15px;
+        height: 300px;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+      .chat-messages {
+        flex: 1;
+        overflow-y: auto;
+        margin-bottom: 10px;
+        padding: 10px;
+        background-color: #f9f9f9;
+        border-radius: 4px;
+      }
+      .chat-input {
+        display: flex;
+      }
+      .chat-input input {
+        flex: 1;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        margin-right: 10px;
+      }
+      .chat-input button {
+        padding: 10px 20px;
+        background-color: #1890ff;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      .message {
+        margin-bottom: 10px;
+        padding: 8px 12px;
+        border-radius: 4px;
+        max-width: 80%;
+      }
+      .message.received {
+        background-color: #e1f3ff;
+        align-self: flex-start;
+      }
+      .message.sent {
+        background-color: #dcf8c6;
+        align-self: flex-end;
+        margin-left: auto;
+      }
+      .sender-name {
+        font-weight: bold;
+        font-size: 12px;
+        margin-bottom: 3px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>视频会议系统</h1>
+      </div>
+
+      <div class="meeting-info">
+        <h2>会议：开发周会</h2>
+        <p>
+          会议ID：<span id="meeting-id">123-456-789</span>
+          <button id="copy-btn">复制</button>
+        </p>
+        <p>参会人数：<span id="participant-count">1</span></p>
+      </div>
+
+      <div class="video-grid" id="video-grid">
+        <div class="video-container">
+          <video id="local-video" autoplay muted playsinline></video>
+          <div class="participant-name">我（主持人）</div>
+        </div>
+        <!-- 其他参会者视频将动态添加 -->
+      </div>
+
+      <div class="controls">
+        <div class="control-btn" id="mute-btn">
+          <div class="btn-icon">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path
+                d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"
+              ></path>
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+              <line x1="12" y1="19" x2="12" y2="23"></line>
+              <line x1="8" y1="23" x2="16" y2="23"></line>
+            </svg>
+          </div>
+          <span class="btn-text">静音</span>
+        </div>
+
+        <div class="control-btn" id="video-btn">
+          <div class="btn-icon">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polygon points="23 7 16 12 23 17 23 7"></polygon>
+              <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+            </svg>
+          </div>
+          <span class="btn-text">关闭视频</span>
+        </div>
+
+        <div class="control-btn" id="share-btn">
+          <div class="btn-icon">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
+              <polyline points="16 6 12 2 8 6"></polyline>
+              <line x1="12" y1="2" x2="12" y2="15"></line>
+            </svg>
+          </div>
+          <span class="btn-text">共享屏幕</span>
+        </div>
+
+        <div class="control-btn" id="chat-toggle-btn">
+          <div class="btn-icon">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path
+                d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+              ></path>
+            </svg>
+          </div>
+          <span class="btn-text">聊天</span>
+        </div>
+
+        <div class="control-btn" id="leave-btn">
+          <div class="btn-icon leave">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+          </div>
+          <span class="btn-text">离开会议</span>
+        </div>
+      </div>
+
+      <div class="chat-panel" id="chat-panel" style="display: none">
+        <h3>聊天</h3>
+        <div class="chat-messages" id="chat-messages">
+          <div class="message received">
+            <div class="sender-name">系统消息</div>
+            <div class="message-content">欢迎加入会议！</div>
+          </div>
+        </div>
+        <div class="chat-input">
+          <input type="text" id="chat-input" placeholder="输入消息..." />
+          <button id="send-btn">发送</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // 基本DOM元素
+      const localVideo = document.getElementById('local-video')
+      const videoGrid = document.getElementById('video-grid')
+      const muteBtn = document.getElementById('mute-btn')
+      const videoBtn = document.getElementById('video-btn')
+      const shareBtn = document.getElementById('share-btn')
+      const chatToggleBtn = document.getElementById('chat-toggle-btn')
+      const leaveBtn = document.getElementById('leave-btn')
+      const chatPanel = document.getElementById('chat-panel')
+      const chatMessages = document.getElementById('chat-messages')
+      const chatInput = document.getElementById('chat-input')
+      const sendBtn = document.getElementById('send-btn')
+      const copyBtn = document.getElementById('copy-btn')
+
+      // 状态变量
+      let localStream
+      let isMuted = false
+      let isVideoOff = false
+      let isScreenSharing = false
+      let peerConnections = {}
+
+      // 初始化
+      async function init() {
+        try {
+          // 获取本地媒体流
+          localStream = await navigator.mediaDevices.getUserMedia({
+            audio: true,
+            video: true,
+          })
+
+          // 显示本地视频
+          localVideo.srcObject = localStream
+
+          // 模拟添加远程参与者
+          setTimeout(addFakeParticipants, 1000)
+        } catch (error) {
+          console.error('获取媒体设备失败:', error)
+          alert('无法访问摄像头或麦克风，请确保设备已连接并授予权限。')
+        }
+      }
+
+      // 模拟添加远程参与者（仅用于演示）
+      function addFakeParticipants() {
+        const participants = [
+          { id: 'user1', name: '张三' },
+          { id: 'user2', name: '李四' },
+          { id: 'user3', name: '王五' },
+        ]
+
+        participants.forEach((participant) => {
+          const videoContainer = document.createElement('div')
+          videoContainer.className = 'video-container'
+          videoContainer.id = `container-${participant.id}`
+
+          const video = document.createElement('video')
+          video.id = `video-${participant.id}`
+          video.autoplay = true
+          video.playsInline = true
+
+          // 创建一个模拟视频流（实际应用中这里应该是WebRTC连接）
+          const canvas = document.createElement('canvas')
+          canvas.width = 640
+          canvas.height = 480
+          const ctx = canvas.getContext('2d')
+
+          // 绘制一个简单的彩色背景和名字
+          function drawFrame() {
+            ctx.fillStyle = `hsl(${Math.random() * 360}, 50%, 80%)`
+            ctx.fillRect(0, 0, canvas.width, canvas.height)
+            ctx.fillStyle = 'black'
+            ctx.font = '30px Arial'
+            ctx.textAlign = 'center'
+            ctx.fillText(participant.name, canvas.width / 2, canvas.height / 2)
+
+            if (canvas.captureStream) {
+              if (!video.srcObject) {
+                video.srcObject = canvas.captureStream()
+              }
+            }
+
+            requestAnimationFrame(drawFrame)
+          }
+
+          drawFrame()
+
+          const nameLabel = document.createElement('div')
+          nameLabel.className = 'participant-name'
+          nameLabel.textContent = participant.name
+
+          videoContainer.appendChild(video)
+          videoContainer.appendChild(nameLabel)
+          videoGrid.appendChild(videoContainer)
+        })
+
+        // 更新参会人数
+        document.getElementById('participant-count').textContent = '4'
+      }
+
+      // 事件监听器
+      muteBtn.addEventListener('click', () => {
+        isMuted = !isMuted
+        localStream.getAudioTracks().forEach((track) => {
+          track.enabled = !isMuted
+        })
+
+        const btnIcon = muteBtn.querySelector('.btn-icon')
+        const btnText = muteBtn.querySelector('.btn-text')
+
+        if (isMuted) {
+          btnIcon.classList.add('mute')
+          btnText.textContent = '取消静音'
+        } else {
+          btnIcon.classList.remove('mute')
+          btnText.textContent = '静音'
+        }
+      })
+
+      videoBtn.addEventListener('click', () => {
+        isVideoOff = !isVideoOff
+        localStream.getVideoTracks().forEach((track) => {
+          track.enabled = !isVideoOff
+        })
+
+        const btnIcon = videoBtn.querySelector('.btn-icon')
+        const btnText = videoBtn.querySelector('.btn-text')
+
+        if (isVideoOff) {
+          btnIcon.classList.add('video-off')
+          btnText.textContent = '开启视频'
+        } else {
+          btnIcon.classList.remove('video-off')
+          btnText.textContent = '关闭视频'
+        }
+      })
+
+      shareBtn.addEventListener('click', async () => {
+        if (!isScreenSharing) {
+          try {
+            const screenStream = await navigator.mediaDevices.getDisplayMedia({
+              video: true,
+            })
+
+            // 保存原始摄像头流
+            const cameraStream = localVideo.srcObject
+
+            // 替换为屏幕共享流
+            localVideo.srcObject = screenStream
+            isScreenSharing = true
+
+            // 监听屏幕共享结束
+            screenStream.getVideoTracks()[0].onended = () => {
+              localVideo.srcObject = cameraStream
+              isScreenSharing = false
+              shareBtn.querySelector('.btn-text').textContent = '共享屏幕'
+            }
+
+            shareBtn.querySelector('.btn-text').textContent = '停止共享'
+          } catch (error) {
+            console.error('屏幕共享失败:', error)
+            alert('屏幕共享失败，请重试。')
+          }
+        } else {
+          // 停止所有屏幕共享轨道
+          localVideo.srcObject.getVideoTracks().forEach((track) => track.stop())
+          isScreenSharing = false
+          shareBtn.querySelector('.btn-text').textContent = '共享屏幕'
+        }
+      })
+
+      chatToggleBtn.addEventListener('click', () => {
+        if (chatPanel.style.display === 'none') {
+          chatPanel.style.display = 'flex'
+        } else {
+          chatPanel.style.display = 'none'
+        }
+      })
+
+      leaveBtn.addEventListener('click', () => {
+        if (confirm('确定要离开会议吗？')) {
+          // 停止所有媒体轨道
+          if (localStream) {
+            localStream.getTracks().forEach((track) => track.stop())
+          }
+
+          // 关闭所有对等连接
+          Object.values(peerConnections).forEach((pc) => pc.close())
+
+          // 重定向到结束页面或首页
+          alert('您已离开会议')
+          window.location.href = 'index.html'
+        }
+      })
+
+      sendBtn.addEventListener('click', () => {
+        const message = chatInput.value.trim()
+        if (message) {
+          addChatMessage('我', message, true)
+          chatInput.value = ''
+        }
+      })
+
+      chatInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          sendBtn.click()
+        }
+      })
+
+      copyBtn.addEventListener('click', () => {
+        const meetingId = document.getElementById('meeting-id').textContent
+        navigator.clipboard
+          .writeText(meetingId)
+          .then(() => {
+            alert('会议ID已复制到剪贴板')
+          })
+          .catch((err) => {
+            console.error('复制失败:', err)
+          })
+      })
+
+      // 添加聊天消息
+      function addChatMessage(sender, content, isSent = false) {
+        const messageDiv = document.createElement('div')
+        messageDiv.className = `message ${isSent ? 'sent' : 'received'}`
+
+        const senderDiv = document.createElement('div')
+        senderDiv.className = 'sender-name'
+        senderDiv.textContent = sender
+
+        const contentDiv = document.createElement('div')
+        contentDiv.className = 'message-content'
+        contentDiv.textContent = content
+
+        messageDiv.appendChild(senderDiv)
+        messageDiv.appendChild(contentDiv)
+
+        chatMessages.appendChild(messageDiv)
+        chatMessages.scrollTop = chatMessages.scrollHeight
+      }
+
+      // 启动应用
+      init()
+
+      // 模拟接收消息（仅用于演示）
+      setTimeout(() => {
+        addChatMessage('张三', '大家好！')
+      }, 2000)
+
+      setTimeout(() => {
+        addChatMessage('李四', '今天的议程是什么？')
+      }, 3500)
+
+      setTimeout(() => {
+        addChatMessage('王五', '我们需要讨论新项目的进度')
+      }, 5000)
+    </script>
+  </body>
+</html>
