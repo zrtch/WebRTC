@@ -1,10 +1,16 @@
-## WebRTC
+# WebRTC
 
 WebRTC (Web Real-Time Communication) 是一项开源技术，允许网页浏览器之间进行实时音视频通信，无需安装插件或第三方软件。主要特点：
 
 - 点对点通信：减少服务器负担，降低延迟
 - 开放标准：由 W3C 和 IETF 标准化
 - 跨平台：支持多种浏览器和设备
+
+## 媒体流（MediaStream）
+
+- 由任意数量的媒体信息轨道（MediaStreamTrack）组成。
+- 包含音频、视频、文本（如字幕）等。
+- 用于发送和接收实时或存储的媒体信息。
 
 ## 数据通道 (RTCDataChannel)
 
@@ -270,7 +276,7 @@ socket.on('message', (data) => {
 
 ## WebRTC 安全性考虑
 
-### . 端到端加密
+### 1. 端到端加密
 
 WebRTC 默认对所有媒体流和数据通道进行端到端加密，使用 DTLS 和 SRTP 协议：
 
